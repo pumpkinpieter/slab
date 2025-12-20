@@ -1,0 +1,144 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{cleveref}
+\usepackage{subcaption}
+\usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
+\author{Pieter Vandenberge}
+
+\newcommand{\high}{{\mbox{\scriptsize high}}}
+\newcommand{\low}{{\mbox{\scriptsize low}}}
+\newcommand{\C}{\mathbb{C}}
+\title{Resonance Conditions in Slab Waveguides}
+\begin{document}
+\maketitle
+
+These are notes about deriving the resonance wavelengths of a hollow core slab waveguide.  These guides have low index outer regions surrounding two high index regions sandwiching a low index core.  We denote the two refractive indices by $n_\high$ and $n_\low$. The coordinates of material interfaces are denoted by $\rho_i$.  See \cref{fig:rip} for a transverse profile of such a waveguide.
+ 
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=.8\textwidth]{rip}
+\caption{Refractive index profile of hollow core guide.}
+\label{fig:rip}
+\end{figure}
+
+When propagating input fields to such guides, we utilize radiation modes, which are oscillatory in the transverse plane and meet the Maxwell's transmission conditions at each material interface (see \cref{fig:typical radiation mode}).  For the fields we consider here (transverse electric fields), those conditions are equivalent to continuity and differentiability.  We assume a specific operating wavelength $\lambda_0$ and associated wavenumber $k_0 = 2\pi / \lambda_0$.  Each radiation mode has single longitudinal propagation constant $\beta$ and multiple transverse propagation constants $Z_j$ (one for each region $R_j$), such that they can be written in the form
+
+\begin{align}
+F(x,z) = \left(A_j e^{i Z_j x} + B_j e^{-i Z_j x}\right) e^{i\beta z} \qquad x,z \in R_j \quad A_j, B_j \in \C.
+\end{align}
+transverse propagation constants in different regions are related to each other via   
+%
+\begin{align}\label{eq:Zs relation}
+Z_j^2 - Z_i^2 = k_0^2 (n_j^2 - n_i^2),
+\end{align}
+%
+and $k_0 = 2 \pi / \lambda_0$ where $\lambda_0$ is the operating wavelength of the guide (i.e. the wavelength of the input optical field).  It follows from \cref{eq:Zs relation} that regions with the same refractive index have the same transverse propagation constants.  Let $Z_\low, Z_\high$ denote the transverse propagation constants in the low and high index regions respectively.
+
+Resonance in this guide occurs when there is a non-trivial mode such that the transverse propagation constants in the outer regions are zero (i.e. $Z_\low = 0$), and the modes in the higher index region comprise an integer number of half wavelengths, as in \cref{fig:resonant radiation mode}\footnote{In fact, it is primarily the latter criterion that is used to determine resonance, the requirement that $Z_\low=0$ is, I believe, new to this work.}. The existence of this non-trivial mode has significant implications for how the waveguides propagate input fields.
+
+\begin{figure}[htbp]
+	\centering
+	\begin{subfigure}[b]{\textwidth}
+		\centering
+		\includegraphics[width=.8\textwidth]{radmode}
+		\caption{Typical radiation mode}
+		\label{fig:typical radiation mode}
+	\end{subfigure}
+	\begin{subfigure}[b]{\textwidth}
+		\centering
+		\includegraphics[width=.8\textwidth]{resmode}
+		\caption{Resonant radiation mode}
+		\label{fig:resonant radiation mode}
+	\end{subfigure}
+	\caption[Radiation Modes of Hollow Core Slab Waveguide]{Radiation modes of the hollow core slab waveguide. Note that, for the resonant mode, three half wavelengths appear in each high index region.}
+	\label{fig:slab geom}
+\end{figure}
+
+When leaky modes are used to model propagation in the guide, there is a remaining portion of the representation of the true fields that is often neglected, the so-called space wave \cite{snyderOpticalWaveguide2024}.  The utility of the leaky mode representation is that the space wave field has a known asymptotic form, which can be derived using the method of steepest descent \cite{carrierFunctionsComplex2005}. If a non-trivial radiation mode $F(x,z)$ exists for $Z_\low=0$, the space wave has the asymptotic form
+%
+\begin{align}
+A(x,z) & \sim F(x,0) \exp{(i k_0 z)} z^{-1/2}.
+\end{align}
+%
+If, however, the field $F$ is trival, we need to go to the next higher order term in the asymptotic form, which utilizes the derivative of $F$ with regard to $Z_\low$:
+%
+\begin{align}
+A(x,z) & \sim \frac{\partial F(x,0)}{\partial Z_\low}\Big|_{Z_\low = 0}\exp{(i k_0 z)} z^{-3/2}.
+\end{align}
+%
+In this case, the space wave has a much greater rate of decay than in the previous one.  Thus, at resonance wavelengths, the existence of a non-trivial radiation mode at $Z_\low=0$ implies that the space wave decays much less quickly than in non-resonant cases.  Thus, at resonance, the space wave plays a much greater role in propagating energy\footnote{Though it is in some sense not bound energy, as the space wave tends to have significant intensity outside the guiding region.}.  This, along with the fact that the fundamental leaky modes are much more lossy at resonance, implies that the entire leaky mode representation of the field will break down at resonant wavelengths if the space wave is not also taken into account.  This issue has been noted in \cite{smithFailureLeakymode1995}, but without the space wave analysis here.
+
+Let $T$ denote the thickness of the high index regions (assumed equal).  Let $\ell$ be an integer denoting the number of half wavelengths.  The wavelength in the high index region is given by $2\pi / Z_\high$.  Since $Z_\low=0$, we have by \cref{eq:Zs relation} that $Z_\high = k_0 \sqrt{n_\high^2 - n_\low^2}$.  The requirement that an integer number of transverse half wavelengths fit into the high index region can now be expressed as 
+
+\begin{align}
+T &= \frac{\ell}{2} \left( \frac{2\pi}{Z_\high} \right)\label{eq:thickness equals wavelength}\\[.1in] 
+	& = \frac{\ell}{2} \left( \frac{2\pi}{\frac{2\pi}{\lambda_0}\sqrt{n_\high^2 - n_\low^2}}\right)
+\end{align}
+
+hence
+
+\begin{align}
+T = \frac{\ell \lambda_0 }{2\sqrt{n_\high^2 - n_\low^2}}
+\end{align}
+
+or equivalently
+
+\begin{align}
+\lambda_0 = \frac{2T}{\ell}\sqrt{n_\high^2 - n_\low^2}.
+\end{align}
+
+This is the resonance condition appearing as equation 1 in \cite{litchinitserAntiresonantReflecting2002}.  According to that source, these are the input wavelengths for which we can expect spikes in confinement loss.  And indeed we do see that the loss values associated with the fundamental leaky mode and first few higher order leaky modes does increase dramatically there, as depicted in \cref{fig:prop constants}.  
+
+\begin{figure}[htbp]
+	\centering
+	\begin{subfigure}[b]{\textwidth}
+	\centering
+\includegraphics[width=\textwidth]{detplottyp}
+		\caption{Low loss wavelength}
+		\label{fig:prop constant plot typical}
+	\end{subfigure}
+	\begin{subfigure}[b]{\textwidth}
+	\centering
+\includegraphics[width=\textwidth]{detplotres}
+		\caption{Resonant wavelength}
+		\label{fig:prop constant plot resonant}
+	\end{subfigure}
+	\caption[Leaky Mode propagation constant plots]{Location of leaky mode propagation constants in complex plane for low loss and resonant input wavelengths. Fundamental leaky mode has the smallest real component, with higher order modes having progressively larger real parts. Larger imaginary components correspond to more lossy modes.}
+	\label{fig:prop constants}
+\end{figure}
+
+We can also ask more generally when, for any given value of $Z_\low$, not necessarily equal to zero, do we have an integer number of half wavelengths of radiation modes in the high index regions.  We can then use \eqref{eq:Zs relation} and square both sides of \eqref{eq:thickness equals wavelength} to get
+
+\begin{align}
+T^2 &= \frac{\ell^2}{4} \left( \frac{4\pi^2}{Z_\high^2} \right)\\[.1in] 
+		&= \frac{\ell^2}{4} \left( \frac{4\pi^2}{Z_\low^2 + \left(\frac{2\pi}{\lambda_0}\right)^2 \left(n_\high^2 - n_\low^2\right)} \right)
+\end{align}
+
+We now fix the input wavelength $\lambda_0$ and determine the values of $Z_\low$ for which the above holds.  This yields
+
+\begin{align}
+Z_\low^2 &= \left(\frac{\ell \pi}{T}\right)^2 - \left(\frac{2\pi}{\lambda_0}\right)^2 \left(n_\high^2 - n_\low^2\right)
+\end{align}
+
+
+
+
+
+
+
+\bibliography{../../slab.bib}
+\bibliographystyle{siam}
+
+
+
+
+
+
+
+
+\end{document}

@@ -1,0 +1,129 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage{mathrsfs}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{cancel}
+\usepackage{subcaption}
+\usepackage{cleveref}
+\usepackage[left=1.5cm,right=1.5cm,top=2cm,bottom=2cm]{geometry}
+
+\theoremstyle{definition}
+\newtheorem{example}{Example}[section]
+\newtheorem{theorem}{Theorem}[section]
+
+\newcommand{\lp}{\left(}
+\newcommand{\rp}{\right)}
+\newcommand{\goestoposinf}{\rightarrow\infty}
+\author{Pieter Vandenberge}
+\title{Method of Steepest Descent}
+\begin{document}
+\maketitle
+These are notes to better understand the method of steepest descent, which provides asymptotic approximations to functions of the form 
+%
+\begin{align}\label{eq:main function standard form}
+I(\Omega) = \int_\mathcal{C} f(z)e^{\Omega g(z)}  dz
+\end{align}
+%
+for large values of $\Omega$.  Here $\mathcal{C}$ is a contour in the complex plane.  The notation chosen here is the same as that found in  \cite{jacksonSteepestDescentMethod}.
+
+\section{Laplace's Method}
+
+In the case that the contour is a portion of the real axis, the method reduces the Laplace's method and the above function can be written as
+%
+\begin{align}\label{eq:main function laplace form}
+I(\Omega) = \int_a^b f(z)e^{\Omega g(z)}  dz.
+\end{align}
+%
+This method works well if $g(z)$ has a convergent power series at some $z_0$ in the interval $[a,b]$ at which it attains a local maximum.  In this case
+%
+\begin{align}
+g(z) - g(z_0) & = \cancelto{0}{g'(z_0)} (z - z_0) + \frac{g''(z_0)}{2} (z-z_0)^2 + \mathcal{O} \left( (z-z_0)^3 \right)\\[.05in]
+ & = -\frac{|g''(z_0)|}{2} (z-z_0)^2 + \mathcal{O} \left( (z-z_0)^3\right) \label{eq:g minus g0}
+\end{align}
+%
+where we have used the fact that $g''(z_0) < 0$.  Re-writing \cref{eq:main function laplace form} using \cref{eq:g minus g0} we obtain
+%
+\begin{align}
+I(\Omega) & = \int_a^b f(z)e^{\Omega g(z)}  dz \\[.05in]
+ & = e^{-\Omega g(z_0)}  \int_a^b f(z)e^{\Omega \lp g(z) - g(z_0)\rp} dz \\[.05in]
+ & = e^{-\Omega g(z_0)}  \int_a^b f(z)e^{-\Omega \lp \frac{|g''(z_0)|}{2} (z-z_0)^2 - \mathcal{O} \left( (z-z_0)^3\right)\rp} dz.
+\end{align}
+
+The motivation for Laplace's method comes from the following observations:
+
+\begin{itemize}
+\item  The exponential term in the above integral is essentially of the form  $e^{-\Omega s^2}$, and the dominant portion of the integral comes from integrating this Gaussian function near $s = z_0$.
+
+\item This behavior will increase as $\Omega \goestoposinf$. 
+\end{itemize}
+
+\begin{example}\label{ex:cos}
+Let 
+$$ I(\Omega) = \int_{-\pi}^\pi \cos(z)e^{-\Omega z^2}  dz.$$
+
+For increasing values of $\Omega$, the integrand appears as in \cref{fig:cos example integrand}.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=.9\textwidth]{cos_example_integrand.jpg}
+\caption{Behavior of integrand from \cref{ex:cos}}\label{fig:cos example integrand}
+\end{figure}
+
+Hence, for large $\Omega$, the integral will largely be determined by $f(z_0)$ and the value of the Gaussian integral on that interval.  Furthermore, as $\Omega$ increases the Guassian integral's limits may be extended to $\pm \infty$ without affecting the value.  Hence, for large $\Omega$, we should have
+%
+\begin{align*}
+ I(\Omega) & \sim \cos(0) \int_{-\infty}^\infty e^{-\Omega z^2}  dz \\
+ & = \sqrt{\frac{\pi}{\Omega}}.
+\end{align*}
+\end{example}
+
+As shown in \cref{fig:cos example asymptotics}, this approximation yields a very good estimate of true value of the function very quickly as $\Omega$ increases. Unfortunately, another example fails to give useful results.
+%
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=.9\textwidth]{cos_example_asymptotics.jpg}
+\caption{Asymptotics of $I(\Omega)$ from \cref{ex:cos}}\label{fig:cos example asymptotics}
+\end{figure}
+
+\begin{example}
+Consider the function
+%
+$$ I(\Omega) = \int_{0}^\infty z e^{-\Omega z^2}  dz.$$
+%
+Were we to repeat the argument of \cref{ex:cos}, we would determine that
+%
+\begin{align*}
+ I(\Omega) & \sim 0 \int_{0}^\infty e^{-\Omega z^2}  dz \\
+ & = 0
+\end{align*}
+%
+for large values of $\Omega$.  While this may be technically true, it is not a helpful estimate of the function values as we increase $\Omega$, nor does it tell us anything about the rate at which the values decay to zero.
+
+On the other hand, this example has a closed form solution, namely:
+%
+$$ I(\Omega) = \frac{1}{2\Omega},$$
+%
+which shows that the true solution does decay to zero, and additionally shows us the rate of decay.  We hope  that a more fully developed version of Laplace's method will allow us to determine this behavior.
+\end{example}
+Now more
+
+
+
+
+
+
+
+
+
+\newpage
+\bibliography{../../slab.bib}
+\bibliographystyle{siam}
+
+
+
+\end{document}
