@@ -8,6 +8,7 @@ Created on Fri Apr 18 12:54:58 2025
 Z_left = K_left * np.sin(np.arccos(Beta / K_left))
 Z_right = K_right * np.sin(np.arccos(Beta / K_right))
 
+a = 1
 
 def transfer_matrix(self, Input, Rho, n_left, n_right, field_type='TE',
                      Ztype_left='standard', Ztype_right='standard',
