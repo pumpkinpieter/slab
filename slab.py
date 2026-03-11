@@ -14,9 +14,8 @@ from warnings import warn
 from celluloid import Camera
 from scipy import integrate
 from collections.abc import Iterable
-
 from ipywidgets import interactive, FloatSlider, Layout
-
+from time import time
 
 class SlabExact():
     """Class to model layered slab waveguides."""
@@ -83,6 +82,8 @@ class SlabExact():
         # Z value before which we have one-sided radiation modes.
         self.Z_one_sided = self.K0 * np.sqrt(np.max(self.ns[[0, -1]])**2
                                              - np.min(self.ns[[0, -1]])**2)
+        
+        self.V = self.K0 * np.sqrt(self.n_high**2 -self.n0**2, dtype=complex)
 
     @property
     def Ts(self):
@@ -168,12 +169,11 @@ try again.")
     def Zi_from_Z0(self, Z0, ni):
         '''Get Z on region i (with refractive index ni) from Z0. Vectorized
         in Z0 and ni'''
-        # if ni == self.n0:
-        #     return Z0
+        if ni == self.n0:
+            return Z0
         Z0, ni = np.array(Z0), np.array(ni)
-        return (np.sign(Z0[..., np.newaxis]) *
-                np.sqrt((ni[np.newaxis]**2 - self.n0**2) * self.K0**2 +
-                        Z0[..., np.newaxis]**2, dtype=complex))[..., 0]
+        return np.sqrt((ni[np.newaxis]**2 - self.n0**2) * self.K0**2 +
+                       Z0[..., np.newaxis]**2, dtype=complex)[..., 0]
 
     def Psi_i_from_Psi0(self, Psi0, ni):
         '''Get Psi on region i (with refractive index ni) from Psi0.'''
@@ -1295,7 +1295,8 @@ input field f0 or exact transform function.')
 
                 if len(set([len(selfz.Cs), len(selfz.Ss),
                             len(selfz.dCdS)])) != 1:
-                    raise ValueError('Length of Cs, dCdS and Ss must be equal.')
+                    raise ValueError(
+                        'Length of Cs, dCdS and Ss must be equal.')
 
                 selfz.dS = selfz.Ss[1:] - selfz.Ss[:-1]
 
@@ -1948,13 +1949,13 @@ x array.')
         else:
             for i, (n, Xs) in enumerate(zip(nsr, self.Xs)):
                 if i == 0:
-                    ax.plot(Xs, n * np.ones_like(Xs), color='C0', label=label1,
+                    ax.plot(Xs, n * np.ones_like(Xs), color=color, label=label1,
                             **linekwargs)
-                ax.plot(Xs, n * np.ones_like(Xs), color='C0', **linekwargs)
+                ax.plot(Xs, n * np.ones_like(Xs), color=color, **linekwargs)
             for i in range(1, len(Rhos)-1):
                 Rho = Rhos[i]
                 nl, nr = nsr[i-1], nsr[i]
-                ax.plot([Rho, Rho], [nl, nr], color='C0', **linekwargs)
+                ax.plot([Rho, Rho], [nl, nr], color=color, **linekwargs)
 
             for i, (n, Xs) in enumerate(zip(nsi, self.Xs)):
                 if i == 0:
@@ -1987,14 +1988,15 @@ x array.')
                          plane='Z', derivate=False,
                          rref=200, iref=200, levels=70,
                          log_abs=True, equal=False, grid=True,
-                         figsize=(11, 5), cmap='viridis',
+                         fig=None, ax=None, figsize=(11, 5), cmap='viridis',
                          part='norm', facecolor='gray', field_type='TE',
                          mode_type='guided', plot_sdp=True, sdp_sign=-1,
                          plot_axis=True, axis_linewidth=.7,
                          axis_linecolor='k', Normalizer=None, sign=1,
                          colorbar=True, pad=.02, shrink=1, colorbar_frac=.05,
-                         colorbar_aspect=30, anchor=(.5, 1),
+                         colorbar_aspect=30, anchor=(.5, 1), sdp_lc="C0",
                          **contourargs):
+        # if close_others:
         plt.close('all')
         xs = np.linspace(rmin, rmax, num=rref)
         ys = np.linspace(imin, imax, num=iref)
@@ -2019,38 +2021,40 @@ x array.')
         if log_abs:
             Fs = np.log(np.abs(Fs))
 
-        fig = plt.figure(figsize=figsize)
+        if fig is None:
+            fig = plt.figure(figsize=figsize)
+        if ax is None:
+            ax = fig.add_subplot()
+            ax.grid(grid)
+            ax.set_facecolor(facecolor)
 
-        ax = fig.add_subplot()
         if plot_axis:
             if (imin <= 0) * (imax >= 0):
                 ax.axhline(0, color=axis_linecolor, linewidth=axis_linewidth)
             if (rmin <= 0) * (rmax >= 0):
                 ax.axvline(0, color=axis_linecolor, linewidth=axis_linewidth)
 
-        ax.grid(grid)
-        ax.set_facecolor(facecolor)
-
-        im = ax.contour(xs, ys, Fs, levels=levels, cmap=cmap, **contourargs)
+        im = ax.contour(xs, ys, Fs, levels=levels, cmap=cmap,
+                        **contourargs)
 
         if plot_sdp:
             if plane == 'Z':
                 sdp_points = self.sdp(xs, sdp_sign=sdp_sign, plane=plane)
                 sdp_ys = sdp_points.imag
                 msk = np.where((sdp_ys < imax) * (sdp_ys > imin))
-                ax.plot(xs[msk], sdp_ys[msk])
+                ax.plot(xs[msk], sdp_ys[msk], c=sdp_lc)
 
             elif plane == 'Beta':
                 sdp_points = self.sdp(ys, sdp_sign=sdp_sign, plane=plane)
                 sdp_xs, sdp_ys = sdp_points.real, sdp_points.imag
                 if (rmin <= self.K0 * self.n0) * (rmax >= self.K0 * self.n0):
-                    ax.plot(sdp_xs, sdp_ys)
+                    ax.plot(sdp_xs, sdp_ys, c=sdp_lc)
 
             elif plane == 'Psi':
                 sdp_points = self.sdp(ys, sdp_sign=sdp_sign, plane=plane)
                 sdp_xs, sdp_ys = sdp_points.real, sdp_points.imag
                 msk = np.where((sdp_xs < rmax) * (sdp_xs > rmin))
-                ax.plot(sdp_xs[msk], sdp_ys[msk])
+                ax.plot(sdp_xs[msk], sdp_ys[msk], c=sdp_lc)
             else:
                 raise ValueError("Plane must be 'Z', 'Beta' or 'Psi'.")
 
@@ -2058,11 +2062,11 @@ x array.')
             ax.axis('equal')
 
         if colorbar:
-            plt.colorbar(im, pad=pad, shrink=shrink, orientation='vertical',
+            fig.colorbar(im, pad=pad, shrink=shrink, orientation='vertical',
                          anchor=anchor, fraction=colorbar_frac,
-                         aspect=colorbar_aspect)
+                         aspect=colorbar_aspect, ax=[ax])
 
-        return fig, ax
+        return fig, ax, im, Fs
 
     def spectral_integrand_plot(self, rmin, rmax, imin, imax,
                                 rref=100, iref=100, levels=100,
@@ -2083,7 +2087,6 @@ x array.')
                                 anchor=(.5, 1), det_power=0, **args):
         plt.close('all')
         fig, ax = plt.subplots(1, figsize=figsize)
-
         xs, ys = np.linspace(rmin, rmax, rref), np.linspace(imin, imax, iref)
 
         Xs, Ys = np.meshgrid(xs, ys)
@@ -2408,11 +2411,11 @@ be set to True.')
             else:
                 raise ValueError('Part must be real, imag or norm.')
 
-            if color_max is None or color_min is None and k == 0:
+            # if color_max is None or color_min is None and k == 0:
 
-                axmap = ax.contourf(Xs, Zs,  Ys, levels=levels,
-                                    vmin=color_min, vmax=color_max,
-                                    **contourargs)
+            axmap = ax.contourf(Xs, Zs,  Ys, levels=levels,
+                                vmin=color_min, vmax=color_max,
+                                **contourargs)
 
             if plot_Rhos:
                 for Rho in self.Rhos[1:-1]:
@@ -2436,7 +2439,7 @@ be set to True.')
                                  azim=-90, elev=55, roll=0, zoom=2.5,
                                  rstride=4, cstride=4,
                                  maxdim=9, z_lim_factor=2,
-                                 equal=True,
+                                 equal=True, ext='mp4',
                                  product_func=True,
                                  color_min=None, color_max=None,
                                  dpi=100, **surfaceargs):
@@ -2533,7 +2536,12 @@ x array.')
             camera.snap()
 
         animation = camera.animate(blit=True)
-        animation.save(name + '.mp4', fps=fps, dpi=dpi)
+        if ext == 'mp4':
+            writer = 'ffmpeg'
+        elif ext == 'gif':
+            writer = 'pillow'
+        animation.save(name + '.' + ext, fps=fps, dpi=dpi,
+                       writer=writer)
 
     def radiation_mode_beta_animation(self, name, beta_range=None,
                                       imag_type=False, field_type='TE',
@@ -2680,97 +2688,149 @@ x array.')
         animation.save(name + '.mp4', fps=fps)
 
     def animate_propagation_constants(self, rmin, rmax, imin, imax,
-                                      wlmin=1e-6, wlmax=2e-6, Nwl=5,
                                       rref=50, iref=50, levels=50,
+                                      wlmin=1e-6, wlmax=2e-6, Nwl=5,
                                       name='prop_const_animation',
-                                      variable='Psi', cmap='viridis',
-                                      field_type='TE', mode_type='leaky',
-                                      fps=25, figsize=(10, 6),
-                                      colorbar=False, pad=.05, shrink=.9,
+                                      plane='Z', cmap='viridis',
+                                      field_type='TE', mode_type='guided',
+                                      fps=25, figsize=(7, 4.2), screen_dpi=100,
+                                      colorbar=True, pad=.05, shrink=.9,
                                       orient='vertical', colorbar_frac=.1,
                                       colorbar_aspect=15, anchor=(.5, .5),
                                       color_min=None, color_max=None,
                                       facecolor='grey', grid=True,
-                                      bitrate=-1, dpi=300, Z_type='standard',
+                                      ext='mp4', no_save=False,
                                       **contourargs):
         '''Animate propagation constants in complex plane as wavelength changes
         and save as name.mp4.'''
 
-        if variable not in ['Psi', 'beta', 'Z']:
-            raise ValueError("Variable must be 'Psi', 'beta' or 'Z'.")
+        if plane not in ['Psi', 'beta', 'Z']:
+            raise ValueError("Plane must be 'Psi', 'beta' or 'Z'.")
         plt.close('all')
 
-        xs, ys = np.linspace(rmin, rmax, rref), np.linspace(imin, imax, iref)
-        Xs, Ys = np.meshgrid(xs, ys)
-        Cs = Xs + 1j * Ys
-
-        fig, ax = plt.subplots(1, figsize=figsize)
+        fig, ax = plt.subplots(1, figsize=figsize, dpi=screen_dpi)
         camera = Camera(fig)
+        ax.grid(grid, lw=.5)
+        ax.set_facecolor(facecolor)
 
         wls = np.linspace(wlmin, wlmax, Nwl)
 
         # Animate
+        
+        print("Beginning loop of getting plots")
+        a = time()
+        av_plot_time = 0
+        
         for k, wl in enumerate(wls):
+            
             self.wl = wl
-            K = self.K0 * self.n0
 
-            if variable == 'Psi':
-                Fs = self.determinant_Z(K * np.sin(Cs), field_type=field_type,
-                                        mode_type=mode_type)
+            print("Plotting for frame ", k+1)
+            s = time()
+            fig, ax, im, Fs = self.determinant_plot(rmin, rmax, imin, imax,
+                                                    colorbar=False,
+                                                    rref=rref, iref=iref,
+                                                    levels=levels,
+                                                    plane=plane,
+                                                    mode_type=mode_type,
+                                                    field_type=field_type,
+                                                    fig=fig, ax=ax,
+                                                    vmin=color_min,
+                                                    vmax=color_max,
+                                                    )
+            e = time()
+            print("Done plotting.  Time taken: ", e - s )
+            av_plot_time += e - s
+            
+            # if plane == 'Psi':
+            #     Fs = self.determinant(K * np.sin(Cs), field_type=field_type,
+            #                             mode_type=mode_type, plane=plane)
 
-                def sdp(y, c=1):
-                    return np.arccos(c / np.cosh(y))
-                sdp_ys = np.linspace(0, imax, 101)
-                sdp_xs = sdp(sdp_ys)
+            #     def sdp(y, c=1):
+            #         return np.arccos(c / np.cosh(y))
+            #     sdp_ys = np.linspace(0, imax, 101)
+            #     sdp_xs = sdp(sdp_ys)
 
-            elif variable == 'Z':
-                Fs = self.determinant_Z(Cs, field_type=field_type,
-                                        mode_type=mode_type)
+            # elif plane == 'Z':
+            #     Fs = self.determinant(Cs, field_type=field_type,
+            #                             mode_type=mode_type, plane=plane)
 
-                def sdp(x):
-                    KD = self.K0 * self.n0
-                    return (KD * x) / np.sqrt(KD**2 + x**2)
+            #     def sdp(x):
+            #         KD = self.K0 * self.n0
+            #         return (KD * x) / np.sqrt(KD**2 + x**2)
 
-                sdp_xs = np.linspace(0, rmax, 101)
-                sdp_ys = sdp(sdp_xs)
-                msk = np.where((sdp_ys < imax)*(sdp_ys > imin))
-                sdp_xs, sdp_ys = sdp_xs[msk], sdp_ys[msk]
+            #     sdp_xs = np.linspace(0, rmax, 101)
+            #     sdp_ys = sdp(sdp_xs)
+            #     msk = np.where((sdp_ys < imax)*(sdp_ys > imin))
+            #     sdp_xs, sdp_ys = sdp_xs[msk], sdp_ys[msk]
 
-            else:
-                Fs = self.determinant(Cs, field_type=field_type,
-                                      mode_type=mode_type,
-                                      Ztype_far_left=Z_type,
-                                      Ztype_far_right=Z_type)
+            # else:
+            #     Fs = self.determinant(Cs, field_type=field_type,
+            #                           mode_type=mode_type,
+            #                           Ztype_far_left=Z_type,
+            #                           Ztype_far_right=Z_type, plane=plane)
 
-                def sdp(y):
-                    KD = self.K0 * self.n0
-                    return KD * np.ones_like(y)
+            #     def sdp(y):
+            #         KD = self.K0 * self.n0
+            #         return KD * np.ones_like(y)
 
-                sdp_ys = np.linspace(imin, imax, 2)
-                sdp_xs = sdp(sdp_ys)
+            #     sdp_ys = np.linspace(imin, imax, 2)
+            #     sdp_xs = sdp(sdp_ys)
 
-            Zs = np.log(np.abs(Fs))
+            # Zs = np.log(np.abs(Fs))
 
-            axmap = ax.contour(Xs, Ys,  Zs, levels=levels,
-                               vmin=color_min, vmax=color_max,
-                               cmap=cmap, **contourargs)
+            # axmap = ax.contour(Xs, Ys,  Zs, levels=levels,
+            #                    vmin=color_min, vmax=color_max,
+            #                    cmap=cmap, **contourargs)
 
-            sign = 1
-            if mode_type == 'guided' and variable == 'Z':
-                sign = -1
+            # sign = 1
+            # if mode_type == 'guided' and plane == 'Z':
+            #     sign = -1
 
-            ax.plot(sdp_xs, sign * sdp_ys, 'r', lw=1)
-            ax.grid(grid)
-            ax.set_facecolor(facecolor)
+            # ax.plot(sdp_xs, sign * sdp_ys, 'r', lw=1)
+            # ax.grid(grid)
+            # ax.set_facecolor(facecolor)
 
-            if colorbar and k == 0:
-                plt.colorbar(axmap, pad=pad, shrink=shrink, orientation=orient,
-                             anchor=anchor, fraction=colorbar_frac,
-                             aspect=colorbar_aspect)
+            if colorbar:
+                if k == 0:
+                    # cbar = plt.colorbar(im)
+                    # cbar = plt.colorbar(im, pad=pad, shrink=shrink,
+                    #                     orientation=orient,
+                    #                     anchor=anchor, fraction=colorbar_frac,
+                    #                     aspect=colorbar_aspect)
+                    cbar = fig.colorbar(im, pad=pad, shrink=shrink,
+                                        orientation='vertical',
+                                        anchor=anchor, fraction=colorbar_frac,
+                                        aspect=colorbar_aspect, ax=[ax])
+                im.set_array(Fs.flatten())
+                cbar.boundaries = np.round(np.linspace(np.min(Fs),
+                                                       np.max(Fs),
+                                                       10),1)
+                cbar.update_normal(im)
             camera.snap()
-
+        b = time()
+        print("Done getting plots, time elapsed: ", b - a)
+        plot_loop_time = b - a
+        av_plot_time /= Nwl
+        
+        if ext == 'mp4':
+            writer = 'ffmpeg'
+        elif ext == 'gif':
+            writer = 'pillow'
         animation = camera.animate(blit=True)
-        animation.save(name + '.mp4', fps=fps, bitrate=bitrate, dpi=dpi)
+        
+        print("Starting save:")
+        a = time()
+        if no_save:
+            return animation
+        animation.save(name + '.' + ext, fps=fps,
+                       writer=writer, dpi=screen_dpi)
+        b = time()
+        print('Full plot loop time: '+str(plot_loop_time)+'.\nAvg plot time: '\
+              +str(av_plot_time)+'.\nFull save time: '+str(b-a)+\
+                  '.\nAvg save time: '+str((b-a)/Nwl))
+        
+        
 
 # --------------------------- Interactive Plots  -------------------------------
 

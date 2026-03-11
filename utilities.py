@@ -8,6 +8,7 @@ Created on Sat Feb  8 14:16:45 2025
 import numpy as np
 import matplotlib.pyplot as plt
 from warnings import warn
+import json
 
 
 def plot_complex(f, rmin, rmax, imin, imax, fargs=(), fkwargs={}, rref=100,
@@ -15,7 +16,8 @@ def plot_complex(f, rmin, rmax, imin, imax, fargs=(), fkwargs={}, rref=100,
                  colorbar=True,  figsize=(11, 5), cmap='viridis', part='norm',
                  facecolor='gray', close_others=True, pad=.02, shrink=1,
                  colorbar_frac=.05, colorbar_aspect=30, anchor=(.5, 1),
-                 max_value=None, min_value=None, **contourargs):
+                 max_value=None, min_value=None, filled=False,
+                 **contourargs):
     '''Plot complex valued function f on window in complex plane defined by
     rmin, rmax, imin, imax.'''
     if close_others:
@@ -56,16 +58,24 @@ log_abs=False.')
 
     ax.grid(grid)
     ax.set_facecolor(facecolor)
-    im = ax.contour(xs, ys, F, levels=levels, **contourargs)
+    if filled:
+        im = ax.contourf(xs, ys, F, levels=levels, **contourargs)
+    else:
+        im = ax.contour(xs, ys, F, levels=levels, **contourargs)
 
     if equal:
-        ax.axis('equal')
+        ax.set_aspect('equal', adjustable='box')
 
     if colorbar:
         plt.colorbar(im, pad=pad, shrink=shrink,
                      orientation='vertical',
                      anchor=anchor, fraction=colorbar_frac,
                      aspect=colorbar_aspect, ax=ax)
+    # if colorbar:
+    #     plt.colorbar(im, pad=pad, shrink=shrink,
+    #                  orientation='vertical',
+    #                  aspect=colorbar_aspect,
+    #                  anchor=anchor, fraction=colorbar_frac)
 
 
 def plot_complex_surface(f, rmin, rmax, imin, imax,
@@ -125,7 +135,7 @@ def plot_complex_surface(f, rmin, rmax, imin, imax,
                          rstride=rstride, cstride=cstride,
                          **contourargs)
     if equal:
-        ax.axis('equal')
+        ax.set_aspect('equal', adjustable='box')
 
     if colorbar:
         plt.colorbar(im, pad=.05, orientation='vertical',
@@ -449,3 +459,64 @@ def plotlogf_imag(f, im_min, im_max, fkwargs={}, n=1000, figsize=(10, 4),
     if return_xyf:
         return xs, ys, fx
     return fig, ax
+
+
+class ThreeJSMeshSaver():
+    def __init__(self, Xs, Zs):
+        self.Xs = Xs
+        self.Zs = Zs
+        self.trig_indices = self._get_triangle_indices(Xs)
+        self.base_vertices = self._get_base_vertices(Xs, Zs)
+
+    def _get_triangle_indices(self, mesh_array):
+        '''Get triangle index list for three js mesh formation via indexed buffer
+        geometry.'''
+        if len(mesh_array.shape) <= 1:
+            raise ValueError('Provide meshgrid array as input.')
+        Nz, Nx = mesh_array.shape[0], mesh_array.shape[1]
+        l_inds = Nx * Nz
+        indices = np.arange(0, l_inds).reshape((Nx, Nz)).T  # Note transpose
+        # Note transpose and index switch due to transpose
+        fbases = indices[:Nz-1, :Nx-1].T.flatten()
+        f1 = np.array([[i, i+Nz, i+1] for i in fbases], dtype=int)
+        f2 = np.array([[i+1, i+Nz, i+Nz+1] for i in fbases], dtype=int)
+        return np.concatenate((f1, f2))
+
+    def _get_base_vertices(self, Xs, Zs):
+        '''Get vertices of triangles with zero height (y component in three.js).'''
+        if Xs.shape != Zs.shape:
+            raise ValueError(
+                'Provide meshgrid arrays (ie Xs, Zs = np.meshgrid(xs,zs)) as \
+    inputs.')
+        Base = np.array([Xs, np.zeros_like(Xs), Zs], dtype=float)
+        L = Xs.shape[0] * Xs.shape[1]
+        base_vertices = Base.T.reshape((L, 3))
+        return base_vertices
+
+    def create_height_array_from_complex(self, heights):
+        '''Get data for height from complex ys input (needs to be formatted as
+        list: [ys[0].real, ys[0].imag, ys[1].real, ys[1].imag, ... ].'''
+        L = self.Xs.shape[0] * self.Xs.shape[1]
+        Heights = np.array([heights.real, heights.imag], dtype=float)
+        heights = Heights.T.reshape((L, 2))
+        return heights
+
+    def save_as_json(self, filepath, array):
+        with open(filepath + '.json', 'w') as outfile:
+            json.dump(array.flatten().tolist(), outfile, separators=(',', ':'),
+                      sort_keys=True, indent=4)
+
+    def save_trig_indices_as_json(self, filepath):
+        self.save_as_json(filepath, self.trig_indices)
+
+    def save_base_vertices_as_json(self, filepath):
+        self.save_as_json(filepath, self.base_vertices)
+
+    def save_heights_as_json(filepath, heights):
+        heights_array = self.create_height_array_from_complex(heights, self.Xs)
+        self.save_as_json(filepath, heights_array)
+
+    def save_values_as_json(filepath, f0s):
+        with open(filepath + '.json', 'w') as outfile:
+            json.dump(f0s.tolist(), outfile, separators=(',', ':'),
+                      sort_keys=True, indent=4)
