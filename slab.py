@@ -2510,37 +2510,36 @@ spaced spaced intervals."
         orient="vertical",
         **surfaceargs,
     ):
-        """Plot field F as filled contour plot.
+        """Plot field F as 3d surface plot.
 
         If no xs are provided, plots entire region defined by SlabExact class.
 
-        Note that we avoid applying meshgrid to xs and zs until after calling
+        Note that by default we avoid applying meshgrid to xs and zs until after calling
         function. Since field is a product of single function of xs and
         single function of zs it would be wasteful to call it on the meshed
-        arrays."""
+        arrays.  However if we want to plot a non-product function, the user can
+        pass the argument product_func=False, and then the meshed xs and zs will
+        be given to the function.  This may slow things down."""
         plt.close("all")
 
         if zs is None:
-            Zs = np.linspace(zmin, zmax, zref)
+            zs = np.linspace(zmin, zmax, zref)
         else:
-            Zs = zs
-            zmin, zmax = np.min(Zs), np.max(Zs)
+            zmin, zmax = np.min(zs), np.max(zs)
 
         if xs is None:
-            all_Xs = self.all_Xs  # doesn't duplicate endpoints
-        else:
-            all_Xs = xs
+            xs = self.all_Xs  # doesn't duplicate endpoints
 
         fig, ax = plt.subplots(
             1, figsize=figsize, subplot_kw={"projection": "3d"}
         )
         
-        Xg, Zg = np.meshgrid(all_Xs, Zs)
+        Xs, Zs = np.meshgrid(xs, zs)
 
         if product_func:
-            fs = F(all_Xs, Zs, *F_args)
+            fs = F(xs, zs, *F_args)
         else:
-            fs = F(Xg, Zg, *F_args)
+            fs = F(Xs, Zs, *F_args)
 
         if part == "real":
             ys = fs.real
@@ -2552,8 +2551,8 @@ spaced spaced intervals."
             raise ValueError("Part must be real, imag or norm.")
 
         axmap = ax.plot_surface(
-            Xg,
-            Zg,
+            Xs,
+            Zs,
             ys,
             clip_on=False,
             cmap=cmap,
@@ -2561,7 +2560,7 @@ spaced spaced intervals."
             cstride=cstride,
             **surfaceargs,
         )
-        lims = (np.ptp(Xg), np.ptp(Zg), min(np.ptp(Xg), np.ptp(Zg)))
+        lims = (np.ptp(Xs), np.ptp(Zs), min(np.ptp(Xs), np.ptp(Zs)))
         lenys = np.ptp(ys[~np.isnan(ys)])
         ax.set_box_aspect(lims, zoom=zoom)
         ax.set_axis_off()

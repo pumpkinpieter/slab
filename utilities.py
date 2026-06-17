@@ -80,14 +80,14 @@ log_abs=False.')
 
 def plot_complex_surface(f, rmin, rmax, imin, imax,
                          rref=100, iref=100, fargs=(), fkwargs={},
-                         log_abs=False, equal=False, grid=True,
-                         colorbar=True,  figsize=(11, 5), cmap='viridis',
-                         part='norm', facecolor='gray', z_lims=None,
-                         elev=50, roll=0, azim=-90, zoom=1.5, axis_off=True,
-                         rstride=2, cstride=2, levels=None, max_value=None,
+                         log_abs=False, equal=False,
+                         colorbar=True,  figsize=(10, 5), cmap='viridis',
+                         part='norm', z_lim_factor=2,
+                         elev=50, roll=0, azim=-90, zoom=2, axis_off=True,
+                         rstride=2, cstride=2, max_value=None,
                          min_value=None, return_vals=False,
                          **contourargs):
-    '''Plot complex valued function f on window in complex plane defined by
+    '''Plot complex input function f on window in complex plane defined by
     rmin, rmax, imin, imax.'''
     plt.close('all')
     xs = np.linspace(rmin, rmax, num=rref)
@@ -97,41 +97,40 @@ def plot_complex_surface(f, rmin, rmax, imin, imax,
     Fs = f(Zs, *fargs, **fkwargs)
 
     if part == 'real':
-        F = Fs.real
+        Fs = Fs.real
     elif part == 'imag':
-        F = Fs.imag
+        Fs = Fs.imag
     elif part == 'norm':
-        F = np.abs(Fs)
+        Fs = np.abs(Fs)
     elif part == 'phase':
-        F = np.angle(Fs)
+        Fs = np.angle(Fs)
     else:
         raise ValueError('Part must be real, imag, norm or phase.')
 
     if log_abs:
-        F = np.log(np.abs(F))
+        Fs = np.log(np.abs(Fs))
 
     if max_value is not None:
-        msk = np.where(F > max_value)
-        F[msk] = np.abs(max_value) * F[msk] / np.abs(F[msk])
+        msk = np.where(Fs > max_value)
+        Fs[msk] = np.abs(max_value) * Fs[msk] / np.abs(Fs[msk])
     if min_value is not None:
-        msk = np.where(F < min_value)
-        F[msk] = np.abs(min_value) * F[msk] / np.abs(F[msk])
+        msk = np.where(Fs < min_value)
+        Fs[msk] = np.abs(min_value) * Fs[msk] / np.abs(Fs[msk])
 
     fig = plt.figure(figsize=figsize)
 
     ax = fig.add_subplot(projection='3d')
     lims = (np.ptp(xs), np.ptp(ys), min(np.ptp(xs), np.ptp(ys)))
     ax.set_box_aspect(lims, zoom=zoom)
+    rangeFs = np.ptp(Fs[~np.isnan(Fs)])
+    ax.set_zlim(-z_lim_factor * rangeFs, z_lim_factor * rangeFs)
 
-    if z_lims is not None:
-        z_min, z_max = z_lims[:]
-        ax.set_zlim(z_min, z_max)
     if axis_off:
         ax.set_axis_off()
 
     ax.view_init(elev, azim, roll)
 
-    im = ax.plot_surface(Xs, Ys, F, clip_on=False, cmap=cmap,
+    im = ax.plot_surface(Xs, Ys, Fs, clip_on=False, cmap=cmap,
                          rstride=rstride, cstride=cstride,
                          **contourargs)
     if equal:
@@ -141,7 +140,12 @@ def plot_complex_surface(f, rmin, rmax, imin, imax,
         plt.colorbar(im, pad=.05, orientation='vertical',
                      anchor=(.5, 1), fraction=.15)
     if return_vals:
-        return F
+        return Fs
+
+
+def plot_xy_surface(f, xmin, xmax, ymin, ymax, **kwargs):
+    f_complex = lambda C: f(C.real, C.imag)
+    plot_complex_surface(f_complex, xmin, xmax, ymin, ymax, **kwargs)
 
 
 def plot_complex_contour(f, contour, fkwargs={}, rref=20, iref=20,
