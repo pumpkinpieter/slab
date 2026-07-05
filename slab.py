@@ -2494,6 +2494,7 @@ spaced spaced intervals."
         part="real",
         product_func=True,
         figsize=(10, 5),
+        rectangle=None,
         cmap="viridis",
         azim=-90,
         elev=55,
@@ -2530,9 +2531,8 @@ spaced spaced intervals."
         if xs is None:
             xs = self.all_Xs  # doesn't duplicate endpoints
 
-        fig, ax = plt.subplots(
-            1, figsize=figsize, subplot_kw={"projection": "3d"}
-        )
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot(rectangle, projection='3d')
         
         Xs, Zs = np.meshgrid(xs, zs)
 
@@ -2578,6 +2578,93 @@ spaced spaced intervals."
             )
         return fig, ax
 
+
+    def add_2d_plot_surface(
+        self,
+        F,
+        *F_args,
+        ax=None,
+        xs=None,
+        zs=None,
+        zmin=0,
+        zmax=4,
+        zref=100,
+        part="real",
+        product_func=True,
+        # figsize=(10, 5),
+        # rectangle=None,
+        cmap="viridis",
+        # azim=-90,
+        # elev=55,
+        # roll=0,
+        # zoom=2.5,
+        rstride=4,
+        cstride=4,
+        # z_lim_factor=2,
+        # colorbar=False,
+        # pad=0.15,
+        # shrink=0.85,
+        # colorbar_frac=0.15,
+        # anchor=(0.5, 0.5),
+        # orient="vertical",
+        **surfaceargs,
+    ):
+        """Add 3d surface plot of function F to axis."""
+
+        if ax is None:
+            ax = plt.gca()
+            
+        if zs is None:
+            zs = np.linspace(zmin, zmax, zref)
+        else:
+            zmin, zmax = np.min(zs), np.max(zs)
+
+        if xs is None:
+            xs = self.all_Xs  # doesn't duplicate endpoints
+        
+        Xs, Zs = np.meshgrid(xs, zs)
+
+        if product_func:
+            fs = F(xs, zs, *F_args)
+        else:
+            fs = F(Xs, Zs, *F_args)
+
+        if part == "real":
+            ys = fs.real
+        elif part == "imag":
+            ys = fs.imag
+        elif part == "norm":
+            ys = np.abs(fs)
+        else:
+            raise ValueError("Part must be real, imag or norm.")
+
+        axmap = ax.plot_surface(
+            Xs,
+            Zs,
+            ys,
+            clip_on=False,
+            cmap=cmap,
+            rstride=rstride,
+            cstride=cstride,
+            **surfaceargs,
+        )
+        # lims = (np.ptp(Xs), np.ptp(Zs), min(np.ptp(Xs), np.ptp(Zs)))
+        # lenys = np.ptp(ys[~np.isnan(ys)])
+        # ax.set_box_aspect(lims, zoom=zoom)
+        # ax.set_axis_off()
+        # ax.view_init(elev, azim, roll)
+        # ax.set_zlim(-z_lim_factor * lenys, z_lim_factor * lenys)
+
+        # if colorbar:
+        #     plt.colorbar(
+        #         axmap,
+        #         pad=pad,
+        #         shrink=shrink,
+        #         orientation=orient,
+        #         anchor=anchor,
+        #         fraction=colorbar_frac,
+        #     )
+        return ax
     # -------------------------- Special Plots ------------------------------------
 
     def plot_points(self, Cs, m="o", ms=5, ax=None, **kwargs):
