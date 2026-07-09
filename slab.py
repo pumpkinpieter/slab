@@ -25,7 +25,7 @@ class SlabExact:
     def __init__(
         self,
         scale=1e-6,
-        Ts=[2, 2, 2],
+        Ts=[3, 2, 3],
         ns=[1.3, 1.5, 1.3],
         wl=1.8e-6,
         xrefs=None,
@@ -44,7 +44,7 @@ class SlabExact:
         self.L = scale
         self.shift = Shift * scale
         if xrefs is None:
-            xrefs = np.array(np.array(Ts) * 30, dtype=int) + 1
+            xrefs = np.array(np.array(Ts) * 20, dtype=int) + 1
         self.xrefs = xrefs
 
         self.Ts = Ts  # Property that also sets "geometry and mesh"
@@ -2489,19 +2489,20 @@ spaced spaced intervals."
         xs=None,
         zs=None,
         zmin=0,
-        zmax=4,
+        zmax=5,
         zref=100,
         part="real",
         product_func=True,
+        show_axis=False,
         figsize=(10, 5),
         rectangle=None,
         cmap="viridis",
         azim=-90,
         elev=55,
         roll=0,
-        zoom=2.5,
-        rstride=4,
-        cstride=4,
+        zoom=2,
+        rstride=2,
+        cstride=2,
         z_lim_factor=2,
         colorbar=False,
         pad=0.15,
@@ -2560,12 +2561,16 @@ spaced spaced intervals."
             cstride=cstride,
             **surfaceargs,
         )
-        lims = (np.ptp(Xs), np.ptp(Zs), min(np.ptp(Xs), np.ptp(Zs)))
+        # lims = (np.ptp(Xs), np.ptp(Zs), min(np.ptp(Xs), np.ptp(Zs)))
         lenys = np.ptp(ys[~np.isnan(ys)])
+        lims = (np.ptp(Xs), np.ptp(Zs), z_lim_factor * lenys)
         ax.set_box_aspect(lims, zoom=zoom)
-        ax.set_axis_off()
+        # ax.set_box_aspect(lims, zoom=zoom)
+        
+        if not show_axis:
+            ax.set_axis_off()
         ax.view_init(elev, azim, roll)
-        ax.set_zlim(-z_lim_factor * lenys, z_lim_factor * lenys)
+        # ax.set_zlim(-z_lim_factor * lenys, z_lim_factor * lenys)
 
         if colorbar:
             plt.colorbar(
@@ -2587,7 +2592,7 @@ spaced spaced intervals."
         xs=None,
         zs=None,
         zmin=0,
-        zmax=4,
+        zmax=5,
         zref=100,
         part="real",
         product_func=True,
@@ -2598,8 +2603,8 @@ spaced spaced intervals."
         # elev=55,
         # roll=0,
         # zoom=2.5,
-        rstride=4,
-        cstride=4,
+        rstride=2,
+        cstride=2,
         # z_lim_factor=2,
         # colorbar=False,
         # pad=0.15,
@@ -2810,7 +2815,7 @@ spaced spaced intervals."
         facecolor="gray",
         field_type="TE",
         mode_type="guided",
-        plot_sdp=True,
+        plot_sdp=False,
         sdp_sign=-1,
         plot_axis=True,
         axis_linewidth=0.7,
@@ -2826,7 +2831,6 @@ spaced spaced intervals."
         sdp_lc="C0",
         **contourargs,
     ):
-        # if close_others:
         plt.close("all")
         xs = np.linspace(rmin, rmax, num=rref)
         ys = np.linspace(imin, imax, num=iref)
@@ -3130,12 +3134,13 @@ z = %.2f"
         Normalizer=None,
         colorbar_aspect=30,
         figsize=(10, 5),
+        show_axis=False,
         azim=-90,
         elev=55,
         roll=0,
-        zoom=2.5,
-        rstride=1,
-        cstride=1,
+        zoom=2,
+        rstride=2,
+        cstride=2,
         z_lim_factor=2,
         colorbar=False,
         pad=0.15,
@@ -3269,7 +3274,8 @@ be set to True."
         fs_width = np.ptp(fs)
         ax.set_zlim(-z_lim_factor * fs_width, z_lim_factor * fs_width)
         ax.set_box_aspect(lims, zoom=zoom)
-        ax.set_axis_off()
+        if not show_axis:
+            ax.set_axis_off()
         ax.view_init(elev, azim, roll)
 
         if colorbar:
@@ -3539,13 +3545,14 @@ be set to True."
         zref=100,
         part="real",
         figsize=(10, 5),
+        show_axis=False,
         cmap="viridis",
         azim=-90,
         elev=55,
         roll=0,
-        zoom=2.5,
-        rstride=4,
-        cstride=4,
+        zoom=2,
+        rstride=2,
+        cstride=2,
         maxdim=9,
         z_lim_factor=2,
         equal=True,
@@ -3591,7 +3598,8 @@ be set to True."
 
         lims = (np.ptp(Xs), np.ptp(Zs), min(np.ptp(Xs), np.ptp(Zs)))
         ax.set_box_aspect(lims, zoom=zoom)
-        ax.set_axis_off()
+        if not show_axis:
+            ax.set_axis_off()
         ax.view_init(elev, azim, roll)
 
         a = time()
@@ -3991,7 +3999,7 @@ be set to True."
         levels=70,
         field_type="TE",
         mode_type="guided",
-        plot_sdp=True,
+        plot_sdp=False,
         sdp_sign=-1,
         plane="Z",
         grid=True,
